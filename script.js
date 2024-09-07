@@ -17,6 +17,25 @@ export const options = {
     http_req_duration: __ENV.RQ_DURATION && (__ENV.RQ_DURATION).split(',')
       || ['p(95)<200'], // 95% of requests should be below 600ms
   },
+
+  scenarios: {
+    simultaneous_users: {
+      executor: 'constant-vus',
+      vus: 10,
+      duration: '30s',
+      startTime: '0s',
+    },
+    staggered_requests: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 20 },
+        { duration: '1m', target: 20 },
+        { duration: '30s', target: 0 },
+      ],
+      startTime: '30s',
+    },
+  },
 };
 
 
@@ -62,6 +81,7 @@ export default function () {
   // Check if the request was successful
   check(response, {
     'status is 200': r => r.status === 200,
+    'status is ok (if present)': () => status === undefined || status === 'ok',
     'response body is valid JSON': _ => dataToCheck !== undefined,
     'JSON contains expected keys': _ => {
       return EXPECTED_KEYS.every(key => key in dataToCheck);
